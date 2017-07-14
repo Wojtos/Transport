@@ -1,5 +1,6 @@
+#include <stack>
 #include "transport.h"
-#include <iostream>
+
 
 
 string mot::MOTToString[4] = {"Samolot", "Autobus", "Pociag", "Lodz"};
@@ -59,16 +60,29 @@ string City::GetName() { return itsName; }
 
 int City::GetNumber() {return itsNumber; }
 
+list<FormOfTransport>* City::GetOneOfMeansOfTransport(MeansOfTransport i)
+{
+    return &itsMOT[i];
+}
+
+
+
+void City::ShowByFormOfTransport(MeansOfTransport mot)
+{
+    for (list<FormOfTransport>::iterator it = itsMOT[mot].begin(); it != itsMOT[mot].end(); ++it)
+    {
+        it -> ShowRoute(itsName);
+    }
+}
+
 void City::Show()
 {
     for (int i = 0; i < 4; ++i)
     {
-        for (list<FormOfTransport>::iterator it = itsMOT[i].begin(); it != itsMOT[i].end(); ++it)
-        {
-            it -> ShowRoute(itsName);
-        }
+        ShowByFormOfTransport((MeansOfTransport)i);
     }
 }
+
 
 // TravelAgency
 
@@ -109,6 +123,95 @@ void TravelAgency::Show()
     }
 }
 
+void TravelAgency::FindTheCheapestPath(string startS, string destinationS)
+{
+    City* toStart = FindByName(startS);
+    City* toFinish = FindByName(destinationS);
+
+    // Dijkstra
+    int N = City::GetNumberOfCities() ;
+    int MAX = 1000000;
+
+    Dijkstra** dijkstra = new Dijkstra*[N];
+    Paths** paths = new Paths*[N];
+
+    for (int i = 0; i < N; ++i)
+    {
+        dijkstra[i] = new Dijkstra;
+        dijkstra[i] -> itsNumber = i;
+        dijkstra[i] -> itsDistance = MAX;
+        paths[i] = new Paths;
+        paths[i] -> setItsDistance(MAX);
+        paths[i] -> setItsPrevious(-1);
+        paths[i] -> setItsVisited(false);
+    }
+
+    int start = toStart -> GetNumber();
+    dijkstra[start] -> itsDistance = 0;
+    paths[start] -> setItsDistance(0);
+
+    priority_queue<int, vector<Dijkstra*>, Compare> minPiorityQueue;
+
+    for (int j = 0; j < N; ++j)
+    {
+        minPiorityQueue.push(dijkstra[j]);
+    }
+
+    delete[] dijkstra;
+
+
+    while(minPiorityQueue.empty() == false)
+    {
+
+        Dijkstra* tmp = minPiorityQueue.top();
+        minPiorityQueue.pop();
+        int v = tmp -> itsNumber;
+        delete tmp;
+        if (!paths[v] -> isItsVisited())
+        {
+            paths[v] -> setItsVisited(true);
+
+            City* vCity = FindByNum(v);
+
+            for (int i = 0; i < 4; ++i)
+            {
+                list<FormOfTransport>* list1 = vCity ->GetOneOfMeansOfTransport((MeansOfTransport)i);
+
+                for (list<FormOfTransport>::iterator it = list1 -> begin(); it != list1 -> end(); ++it)
+                {
+                    int u = it ->GetDestination();
+                    if (paths[u] -> getItsDistance() > paths[v] ->getItsDistance() + it ->GetDistance())
+                    {
+                        paths[u] ->setItsDistance(paths[v] ->getItsDistance() + it ->GetDistance());
+                        paths[u] ->setItsPrevious(v);
+                    }
+                }
+            }
+        }
+
+    }
+
+    cout << "Odleglosc wynosi " <<
+         paths[toFinish ->GetNumber()] ->getItsDistance() << " km i wiedzie przez " << endl;
+
+    stack<int> sPrevious;
+    int k = toFinish ->GetNumber();
+    while(k != -1)
+    {
+        sPrevious.push(k);
+        k = paths[k] -> getItsPrevious();
+    }
+
+    while (!sPrevious.empty())
+    {
+        k = sPrevious.top();
+        sPrevious.pop();
+        cout << FindByNum(k) -> GetName() << endl;
+    }
+
+}
+
+
 City* TravelAgency::FindByNum(int number)
 {
     for (list<City*>::iterator it = itsCities.begin(); it != itsCities.end(); ++it)
@@ -136,16 +239,57 @@ TravelAgency* TravelAgency::GetSingleton()
     return instance;
 }
 
+// Dijkstra
+
+int Paths::getItsDistance() const
+{
+    return itsDistance;
+}
+
+void Paths::setItsDistance(int itsDistance)
+{
+    Paths::itsDistance = itsDistance;
+}
+
+bool Paths::isItsVisited() const
+{
+    return itsVisited;
+}
+
+void Paths::setItsVisited(bool itsVisited)
+{
+    Paths::itsVisited = itsVisited;
+}
+
+int Paths::getItsPrevious() const
+{
+    return itsPrevious;
+}
+
+void Paths::setItsPrevious(int itsPrevious)
+{
+    Paths::itsPrevious = itsPrevious;
+}
+
 
 int main() {
     TravelAgency* instance = TravelAgency::GetSingleton();
     instance ->AddCity("Krakow");
     instance ->AddCity("Warszawa");
     instance ->AddCity("Poznan");
+    instance ->AddCity("Wroclaw");
     instance -> AddRoute("Krakow", "Warszawa", 500, 40, TRAIN);
     instance -> AddRoute("Warszawa", "Poznan", 400, 50, PLANE);
+    instance -> AddRoute("Krakow", "Warszawa", 500, 40, SHIP);
+    instance -> AddRoute("Warszawa", "Wroclaw", 450, 35, COACH);
+    instance -> AddRoute("Wroclaw", "Krakow" , 450, 35, COACH);
+    instance -> AddRoute("Warszawa", "Krakow" , 800, 35, COACH);
     instance -> Show();
+    instance -> FindTheCheapestPath("Krakow", "Poznan");
+    instance -> FindTheCheapestPath("Warszawa", "Krakow");
     delete instance;
 
     return 0;
 }
+
+

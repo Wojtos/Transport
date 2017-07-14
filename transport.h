@@ -3,6 +3,8 @@
 //
 #include <list>
 #include <string>
+#include <iostream>
+#include <queue>
 
 using namespace std;
 
@@ -55,7 +57,10 @@ public:
 
     string GetName();
     int GetNumber();
+    list<FormOfTransport>* GetOneOfMeansOfTransport(MeansOfTransport i);
+    void ShowByFormOfTransport(MeansOfTransport mot);
     void Show();
+    //void FindTheCheapestPath(int destination);
 
     static int GetNumberOfCities();
 
@@ -75,6 +80,7 @@ public:
     void AddCity(string city);
     void AddRoute(string start, string destination, int distance, int cost, MeansOfTransport meanOfTransport);
     void Show();
+    void FindTheCheapestPath(string start, string destination);
 
     City* FindByNum(int number);
     City* FindByName(string name);
@@ -82,6 +88,41 @@ public:
 private:
     static TravelAgency* instance;
     list<City*> itsCities;
+};
+
+class Dijkstra
+{
+public:
+    //Dijkstra(int number, int distance);
+    int itsNumber;
+    int itsDistance;
+
+
+};
+
+class Paths
+{
+public:
+    int getItsDistance() const;
+    void setItsDistance(int itsDistance);
+    bool isItsVisited() const;
+    void setItsVisited(bool itsVisited);
+    int getItsPrevious() const;
+    void setItsPrevious(int itsPrevious);
+
+private:
+    int itsDistance;
+    bool itsVisited;
+    int itsPrevious;
+};
+
+class Compare
+{
+public:
+    bool operator() (Dijkstra *lhs, Dijkstra *rhs) const
+    {
+        return lhs -> itsDistance > rhs -> itsDistance;
+    }
 };
 
 #ifndef TRANSPORT_TRANSPORT_H
